@@ -20,9 +20,10 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             extra-experimental-features = nix-command flakes
+            allow-import-from-derivation = true
 
       - name: Build atlas
-        run: nix build .#atlas --print-out-paths
+        run: nix build .#atlas --print-out-paths --impure
         env:
           NIXPKGS_ALLOW_UNFREE: 1
 
