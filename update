@@ -1,0 +1,76 @@
+#!/usr/bin/env nix-shell
+#! nix-shell -p curl jq -i bash
+# shellcheck shell=bash
+set -euo pipefail
+
+# Fetch latest Atlas version from GitHub releases
+echo "Fetching latest Atlas release..."
+RELEASE_INFO=$(curl -s https://api.github.com/repos/ariga/atlas/releases/latest)
+TAG=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+
+if [[ "$TAG" == "null" || -z "$TAG" ]]; then
+  echo "Error: Could not fetch latest release tag"
+  exit 1
+fi
+
+VERSION="${TAG#v}"  # Strip leading 'v' from tag
+echo "Latest version: $VERSION"
+
+# Check current version
+CURRENT_VERSION=$(jq -r '.version' sources.json)
+if [[ "$CURRENT_VERSION" == "$VERSION" ]]; then
+  echo "Already up to date (v$VERSION)"
+  exit 0
+fi
+
+echo "Updating from v$CURRENT_VERSION to v$VERSION"
+
+# Platform mappings: nix system -> atlas binary name
+declare -A PLATFORMS=(
+  ["x86_64-linux"]="linux-amd64"
+  ["x86_64-darwin"]="darwin-amd64"
+  ["aarch64-darwin"]="darwin-arm64"
+)
+
+# Fetch SHA256 hashes for each platform
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+for system in "${!PLATFORMS[@]}"; do
+  binary_name="${PLATFORMS[$system]}"
+  url="https://release.ariga.io/atlas/atlas-${binary_name}-v${VERSION}"
+
+  echo "Fetching hash for $system..."
+  sha256=$(nix-prefetch-url "$url" 2>/dev/null)
+
+  if [[ -z "$sha256" ]]; then
+    echo "Error: Failed to fetch $url"
+    exit 1
+  fi
+
+  echo "  $system: $sha256"
+
+  # Store platform data
+  jq -n \
+    --arg url "$url" \
+    --arg sha256 "$sha256" \
+    '{"url": $url, "sha256": $sha256}' > "$TMP_DIR/$system.json"
+done
+
+# Build new sources.json
+echo "Writing sources.json..."
+jq -n \
+  --arg version "$VERSION" \
+  --argjson x86_64_linux "$(cat "$TMP_DIR/x86_64-linux.json")" \
+  --argjson x86_64_darwin "$(cat "$TMP_DIR/x86_64-darwin.json")" \
+  --argjson aarch64_darwin "$(cat "$TMP_DIR/aarch64-darwin.json")" \
+  '{
+    "version": $version,
+    "platforms": {
+      "x86_64-linux": $x86_64_linux,
+      "x86_64-darwin": $x86_64_darwin,
+      "aarch64-darwin": $aarch64_darwin
+    }
+  }' > sources.json
+
+echo "Updated to v$VERSION"
