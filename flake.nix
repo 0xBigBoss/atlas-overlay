@@ -1,5 +1,5 @@
 {
-  description = "Atlas - declarative database schema migration tool (official binary)";
+  description = "Atlas database migration tool - official binary (unfree, requires allowUnfree)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

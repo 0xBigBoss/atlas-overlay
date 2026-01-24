@@ -2,6 +2,8 @@
 
 Nix flake overlay for [Atlas](https://atlasgo.io) - the official binary distribution from Ariga.
 
+> **⚠️ Unfree License**: This package is marked `licenses.unfree` because Atlas is distributed under the [Atlas EULA](https://ariga.io/legal/atlas/eula), not an OSI-approved license. You must configure Nix to allow unfree packages or use `nixpkgs-unfree` (see below).
+
 ## Why this overlay?
 
 The `atlas` package in nixpkgs builds the community edition from source using `buildGoModule`. The community build excludes Pro/Enterprise features that are gated behind the `ent` build tag:
@@ -15,9 +17,35 @@ The `atlas` package in nixpkgs builds the community edition from source using `b
 
 This overlay fetches the official pre-built binary from Ariga which includes all features under the [Atlas EULA](https://ariga.io/legal/atlas/eula).
 
-## Usage
+## Handling the Unfree License
 
-### As a flake input
+Since Atlas uses `licenses.unfree`, Nix will refuse to build it unless you allow unfree packages. There are several approaches:
+
+### Option A: Use `nixpkgs-unfree` with `follows` (Recommended)
+
+The cleanest approach uses [numtide/nixpkgs-unfree](https://github.com/numtide/nixpkgs-unfree), which has `allowUnfree = true` built-in. The `follows` directive tells atlas-overlay to use this nixpkgs variant:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-unfree.url = "github:numtide/nixpkgs-unfree/nixos-unstable";
+    nixpkgs-unfree.inputs.nixpkgs.follows = "nixpkgs";  # Use our nixpkgs version
+    atlas-overlay.url = "github:0xBigBoss/atlas-overlay";
+    atlas-overlay.inputs.nixpkgs.follows = "nixpkgs-unfree";  # Inherit unfree config
+  };
+
+  outputs = { nixpkgs, nixpkgs-unfree, atlas-overlay, ... }: {
+    devShells.x86_64-linux.default = nixpkgs-unfree.legacyPackages.x86_64-linux.mkShell {
+      packages = [ atlas-overlay.packages.x86_64-linux.atlas ];
+    };
+  };
+}
+```
+
+**What `follows` does**: Without it, each flake input fetches its own copy of dependencies. `follows` deduplicates by saying "use this other input instead of fetching your own." This ensures atlas-overlay builds against the same nixpkgs (with unfree enabled) that you're using elsewhere.
+
+### Option B: Set `allowUnfree` in nixpkgs config
 
 ```nix
 {
@@ -26,34 +54,72 @@ This overlay fetches the official pre-built binary from Ariga which includes all
     atlas-overlay.url = "github:0xBigBoss/atlas-overlay";
   };
 
-  outputs = { nixpkgs, atlas-overlay, ... }: {
-    # Option 1: Use the overlay
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+  outputs = { nixpkgs, atlas-overlay, ... }: let
+    pkgs = import nixpkgs {
       system = "x86_64-linux";
-      modules = [{
-        nixpkgs.overlays = [ atlas-overlay.overlays.default ];
-        environment.systemPackages = [ pkgs.atlas ];
-      }];
+      config.allowUnfree = true;
+      overlays = [ atlas-overlay.overlays.default ];
     };
-
-    # Option 2: Use the package directly
-    devShells.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.mkShell {
-      packages = [ atlas-overlay.packages.x86_64-linux.atlas ];
+  in {
+    devShells.x86_64-linux.default = pkgs.mkShell {
+      packages = [ pkgs.atlas ];
     };
   };
+}
+```
+
+### Option C: Environment variable
+
+```bash
+NIXPKGS_ALLOW_UNFREE=1 nix build --impure github:0xBigBoss/atlas-overlay
+```
+
+## Usage
+
+### As a flake input (with overlay)
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    atlas-overlay.url = "github:0xBigBoss/atlas-overlay";
+  };
+
+  outputs = { nixpkgs, atlas-overlay, ... }: let
+    # Must allow unfree for the overlay to work
+    pkgs = import nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+      overlays = [ atlas-overlay.overlays.default ];
+    };
+  in {
+    devShells.x86_64-linux.default = pkgs.mkShell {
+      packages = [ pkgs.atlas ];
+    };
+  };
+}
+```
+
+### Using the package directly
+
+```nix
+{
+  # With nixpkgs-unfree (no extra config needed)
+  packages = [ atlas-overlay.packages.x86_64-linux.atlas ];
 }
 ```
 
 ### Run directly
 
 ```bash
-nix run github:0xBigBoss/atlas-overlay -- version
+# Requires --impure with NIXPKGS_ALLOW_UNFREE
+NIXPKGS_ALLOW_UNFREE=1 nix run --impure github:0xBigBoss/atlas-overlay -- version
 ```
 
 ### Development shell
 
 ```bash
-nix develop github:0xBigBoss/atlas-overlay
+NIXPKGS_ALLOW_UNFREE=1 nix develop --impure github:0xBigBoss/atlas-overlay
 atlas version
 ```
 
