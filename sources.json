@@ -1,17 +1,17 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "platforms": {
     "x86_64-linux": {
-      "url": "https://release.ariga.io/atlas/atlas-linux-amd64-v1.0.0",
-      "sha256": "1qnf4prk04havxfp6nnawylz57cym9bzsp7gj0gcv5mgjmfj8ivi"
+      "url": "https://release.ariga.io/atlas/atlas-linux-amd64-v1.1.0",
+      "sha256": "1x9f8mlzmx1w94g0iki0axmw6zskqh48fdbmmzbd838r6xfk26dg"
     },
     "x86_64-darwin": {
-      "url": "https://release.ariga.io/atlas/atlas-darwin-amd64-v1.0.0",
-      "sha256": "01x5lzmqm54bifq6fs719mnq1zc2m1hida9nrgwrldbv9phl1h99"
+      "url": "https://release.ariga.io/atlas/atlas-darwin-amd64-v1.1.0",
+      "sha256": "0kpls0ldnkv9qhhqa21mcr19i3738sgdrmyhh2f114zg65wsn2g0"
     },
     "aarch64-darwin": {
-      "url": "https://release.ariga.io/atlas/atlas-darwin-arm64-v1.0.0",
-      "sha256": "1d8q0p11hia6xh3gdw1pdnc81vghf7rmgvgmhhm8rks6rjc31yz7"
+      "url": "https://release.ariga.io/atlas/atlas-darwin-arm64-v1.1.0",
+      "sha256": "09vpfv4v2c01lhan272vjnvibdlr9mxdmqxzyc3vrj31z7p2af1v"
     }
   }
 }
