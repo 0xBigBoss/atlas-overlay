@@ -1,17 +1,17 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.6-68b865a-canary",
   "platforms": {
     "x86_64-linux": {
-      "url": "https://release.ariga.io/atlas/atlas-linux-amd64-v1.1.0",
-      "sha256": "1x9f8mlzmx1w94g0iki0axmw6zskqh48fdbmmzbd838r6xfk26dg"
+      "url": "https://atlasbinaries.com/atlas/atlas-linux-amd64-v1.1.6-68b865a-canary",
+      "sha256": "1idna764zw8n1vnlf0dv7v8fc0ryc4dnm0zs6agg84hl0g2zh7rk"
     },
     "x86_64-darwin": {
-      "url": "https://release.ariga.io/atlas/atlas-darwin-amd64-v1.1.0",
-      "sha256": "0kpls0ldnkv9qhhqa21mcr19i3738sgdrmyhh2f114zg65wsn2g0"
+      "url": "https://atlasbinaries.com/atlas/atlas-darwin-amd64-v1.1.6-68b865a-canary",
+      "sha256": "1sqjmdshfskvz8rrxbyiv5s29har8z7b6imm1khj5yy2mwvc3dlm"
     },
     "aarch64-darwin": {
-      "url": "https://release.ariga.io/atlas/atlas-darwin-arm64-v1.1.0",
-      "sha256": "09vpfv4v2c01lhan272vjnvibdlr9mxdmqxzyc3vrj31z7p2af1v"
+      "url": "https://atlasbinaries.com/atlas/atlas-darwin-arm64-v1.1.6-68b865a-canary",
+      "sha256": "1c9f81ai8fa4162m9106prihsfwsv7xzvismfqg9pid6d0v249qj"
     }
   }
 }

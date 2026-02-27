@@ -3,17 +3,50 @@
 # shellcheck shell=bash
 set -euo pipefail
 
-# Fetch latest Atlas version from GitHub releases
-echo "Fetching latest Atlas release..."
-RELEASE_INFO=$(curl -s https://api.github.com/repos/ariga/atlas/releases/latest)
-TAG=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+ATLAS_UPDATE_SRV="${ATLAS_UPDATE_SRV:-https://atlasbinaries.com/atlas}"
+ATLAS_UPDATE_SRV_FALLBACK="${ATLAS_UPDATE_SRV_FALLBACK:-https://release.ariga.io/atlas}"
 
-if [[ "$TAG" == "null" || -z "$TAG" ]]; then
-  echo "Error: Could not fetch latest release tag"
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+# Pick the platform string used by Atlas installers and download "latest" to discover current version.
+PLATFORM_HOST="linux-amd64"
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64) PLATFORM_HOST="linux-amd64" ;;
+  Darwin-x86_64|Darwin-x86-64|Darwin-amd64) PLATFORM_HOST="darwin-amd64" ;;
+  Darwin-arm64|Darwin-aarch64|Darwin-armv8l) PLATFORM_HOST="darwin-arm64" ;;
+  *)
+    echo "Error: Unsupported host platform '$(uname -s)-$(uname -m)'"
+    exit 1
+    ;;
+esac
+
+echo "Discovering latest Atlas version via Atlas installer stream..."
+tmp_latest_bin="$TMP_DIR/atlas-$PLATFORM_HOST-latest"
+latest_downloaded=false
+for server in "$ATLAS_UPDATE_SRV" "$ATLAS_UPDATE_SRV_FALLBACK"; do
+  if [[ -z "$server" ]]; then
+    continue
+  fi
+  if curl -fsSL -o "$tmp_latest_bin" "$server/atlas-$PLATFORM_HOST-latest"; then
+    latest_downloaded=true
+    break
+  fi
+done
+
+if [[ "$latest_downloaded" != true ]]; then
+  echo "Error: Failed to download atlas-$PLATFORM_HOST-latest"
+  exit 1
+fi
+chmod +x "$tmp_latest_bin"
+
+VERSION=$("$tmp_latest_bin" version | awk '/^atlas version / {print $3}')
+if [[ -z "$VERSION" ]]; then
+  echo "Error: Could not determine Atlas version"
   exit 1
 fi
 
-VERSION="${TAG#v}"  # Strip leading 'v' from tag
+VERSION="${VERSION#v}"
 echo "Latest version: $VERSION"
 
 # Check current version
@@ -33,15 +66,21 @@ declare -A PLATFORMS=(
 )
 
 # Fetch SHA256 hashes for each platform
-TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
-
 for system in "${!PLATFORMS[@]}"; do
   binary_name="${PLATFORMS[$system]}"
-  url="https://release.ariga.io/atlas/atlas-${binary_name}-v${VERSION}"
+  for server in "$ATLAS_UPDATE_SRV" "$ATLAS_UPDATE_SRV_FALLBACK"; do
+    if [[ -z "$server" ]]; then
+      continue
+    fi
+    url="$server/atlas-${binary_name}-v${VERSION}"
+    sha256=$(nix-prefetch-url "$url" 2>/dev/null)
+    if [[ -n "$sha256" ]]; then
+      break
+    fi
+    sha256=""
+  done
 
   echo "Fetching hash for $system..."
-  sha256=$(nix-prefetch-url "$url" 2>/dev/null)
 
   if [[ -z "$sha256" ]]; then
     echo "Error: Failed to fetch $url"
