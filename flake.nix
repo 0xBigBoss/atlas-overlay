@@ -1,14 +1,17 @@
 {
-  description = "Atlas database migration tool - official binary (unfree, requires allowUnfree)";
+  description = "Atlas database migration tool - official binary";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-unfree.url = "github:numtide/nixpkgs-unfree/nixos-unstable";
+    nixpkgs-unfree.inputs.nixpkgs.follows = "nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-unfree,
     flake-utils,
     ...
   }: let
@@ -17,7 +20,7 @@
     systems = builtins.attrNames sources.platforms;
 
     outputs = flake-utils.lib.eachSystem systems (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = nixpkgs-unfree.legacyPackages.${system};
       source = sources.platforms.${system};
 
       atlas = pkgs.stdenv.mkDerivation {
@@ -75,7 +78,7 @@
     outputs
     // {
       overlays.default = final: prev: {
-        atlas = outputs.packages.${prev.system}.atlas;
+        atlas = outputs.packages.${prev.stdenv.hostPlatform.system}.atlas;
       };
     };
 }

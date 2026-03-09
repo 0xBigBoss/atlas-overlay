@@ -2,7 +2,7 @@
 
 Nix flake overlay for [Atlas](https://atlasgo.io) - the official binary distribution from Ariga.
 
-> **⚠️ Unfree License**: This package is marked `licenses.unfree` because Atlas is distributed under the [Atlas EULA](https://ariga.io/legal/atlas/eula), not an OSI-approved license. You must configure Nix to allow unfree packages or use `nixpkgs-unfree` (see below).
+> **⚠️ Unfree License**: This package is marked `licenses.unfree` because Atlas is distributed under the [Atlas EULA](https://ariga.io/legal/atlas/eula), not an OSI-approved license. This repository's own flake uses `nixpkgs-unfree` so `nix develop` and `nix run` work without extra local config, but downstream consumers still need an unfree-enabled nixpkgs when importing the overlay into their own package set.
 
 ## Why this overlay?
 
@@ -19,7 +19,7 @@ This overlay fetches the official pre-built binary from Ariga which includes all
 
 ## Handling the Unfree License
 
-Since Atlas uses `licenses.unfree`, Nix will refuse to build it unless you allow unfree packages. There are several approaches:
+Since Atlas uses `licenses.unfree`, downstream Nix configurations that import the overlay into their own package set must allow unfree packages. There are several approaches:
 
 ### Option A: Use `nixpkgs-unfree` with `follows` (Recommended)
 
@@ -112,14 +112,13 @@ NIXPKGS_ALLOW_UNFREE=1 nix build --impure github:0xBigBoss/atlas-overlay
 ### Run directly
 
 ```bash
-# Requires --impure with NIXPKGS_ALLOW_UNFREE
-NIXPKGS_ALLOW_UNFREE=1 nix run --impure github:0xBigBoss/atlas-overlay -- version
+nix run github:0xBigBoss/atlas-overlay -- version
 ```
 
 ### Development shell
 
 ```bash
-NIXPKGS_ALLOW_UNFREE=1 nix develop --impure github:0xBigBoss/atlas-overlay
+nix develop github:0xBigBoss/atlas-overlay
 atlas version
 ```
 
